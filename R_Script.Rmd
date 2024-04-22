@@ -72,8 +72,7 @@ ehdi_pos <- ehdi %>%
   #             summarise(across(where(is.numeric), ~sum(., na.rm=TRUE))) %>%
   #             mutate(State="Total", Year, sep="_")
 
-# write_csv(ehdi_pos,
-#           "ACS_social_explorer_data/capstone_data_filtered.csv"),row.names = FALSE)
+
 ```
 
 #filter states that have data for all the years for all the variables
@@ -89,6 +88,10 @@ states_all_years <- ehdi_pos %>%
 # Filter the dataset to include only those states
 ehdi_pos <- ehdi_pos %>%
   filter(State %in% states_all_years)
+
+#write out filtered data
+write_csv(ehdi_pos,
+          "Output/final_data/final_data_filtered.csv")
 
 ```
 
@@ -133,7 +136,7 @@ correlation_plot<- ggplot(data = melt(cor_matrix), aes(Var1, Var2, fill = value)
 #save the plot
 # ggsave(correlation_plot,
 #        # file path
-#        file="ACS_social_explorer_data/correlation_plot_HL_capstone.png",
+#        file="Output/correlation_plot_HL_capstone.png",
 #        # figure size
 #        width=1200/96,
 #        height=900/96,
@@ -159,7 +162,7 @@ ggdens <- ggplot(ehdi_pos, aes(HL))+
 # #save the plot
 # ggsave(gghisto,
 #        # file path
-#        file="ACS_social_explorer_data/gghisto_HL_capstone.png",
+#        file="Output/gghisto_HL_capstone.png",
 #        # figure size
 #        width=1200/96,
 #        height=900/96,
@@ -167,7 +170,7 @@ ggdens <- ggplot(ehdi_pos, aes(HL))+
 # 
 # ggsave(ggdens,
 #        # file path
-#        file="ACS_social_explorer_data/ggdens_HL_capstone.png",
+#        file="Output/ggdens_HL_capstone.png",
 #        # figure size
 #        width=1200/96,
 #        height=900/96,
@@ -262,7 +265,7 @@ plot_HL<- ggplot(df, aes(x = term, y = IRR, fill = p.value < 0.05, ymin = lowCI,
 print(plot_HL)
 # ggsave(plot_HL,
 #        # file path
-#        file="ACS_social_explorer_data/ggplot_HL_capstone.png",
+#        file="Output/ggplot_HL_capstone.png",
 #        # figure size
 #        width=1200/96,
 #        height=900/96,
@@ -291,6 +294,10 @@ df1$lowCI <- exp(df1$estimate - 1.96*df1$std.error)
 df1$highCI <- exp(df1$estimate + 1.96*df1$std.error)
 
 print(df1)
+
+write.csv(df1,
+       # file path
+       file="Output/HL_model_nb_IRR_tbl.csv")
 ```
 
 # calculating the SD for the significant predictors before standardization for interpretation purpose
@@ -318,6 +325,9 @@ df1_final <- df1[, c("term", "IRR (Low CI - High CI)", "p-value")]
 # Print the final adjusted dataframe
 print(df1_final)
 
+write.csv(df1_final,
+       # file path
+       file="Output/neg_binomial_IRR_table.csv")
 ```
 
 
@@ -341,13 +351,13 @@ plot_HL_nb<- ggplot(df1, aes(x = term, y = IRR, fill = p.value < 0.05, ymin = lo
         axis.line = element_line(size = 1))
 
 print(plot_HL_nb)
-# ggsave(plot_HL_nb,
-#        # file path
-#        file="ACS_social_explorer_data/ggplot_HL_nb_capstone.png",
-#        # figure size
-#        width=1200/96,
-#        height=900/96,
-#        bg = "white")
+ggsave(plot_HL_nb,
+       # file path
+       file="Output/ggplot_HL_nb_capstone.png",
+       # figure size
+       width=1200/96,
+       height=900/96,
+       bg = "white")
 ```
 
 
