@@ -1,7 +1,7 @@
 ---
 title: "Exploring the Impact of biopsychosocial Factors on Hearing Loss Incidence Rates: A Population-Based Study."
 author: "Keshav Kumar"
-date: "2024-01-22"
+date: "2024-04-22"
 output: html_document
 ---
 
@@ -14,6 +14,32 @@ knitr::opts_chunk$set(echo = TRUE)
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+# # Clear existing variables from the environment
+# rm(list = ls ())
+# # Set the working directory to the project folder
+# setwd("C:/Users/kesha/OneDrive/Desktop/R_git/Capstone")
+```
+
+## Set environment is commented out since this is in already setup in git
+#############################
+```{r}
+# # Set the base folder path
+# box_folder=  "C:/Users/kesha/OneDrive/Desktop/R_git/Capstone" 
+# 
+# ## Input directory
+# inputData.dir <- paste(box_folder,"ACS_social_explorer_data")
+```
+
+```{r}
+## Output directory
+# out.dir <- paste(box_folder,"/Output/Result", Sys.Date(), sep="")
+# if (!dir.exists(out.dir)) {
+#   dir.create(out.dir, recursive = TRUE)
+# }
+# setwd(out.dir)
+```
 
 # install packages and open libraries
 ```{r}
@@ -47,7 +73,7 @@ ehdi_pos <- ehdi %>%
   #             mutate(State="Total", Year, sep="_")
 
 # write_csv(ehdi_pos,
-#           "ACS_social_explorer_data/capstone_data_filtered.csv")
+#           "ACS_social_explorer_data/capstone_data_filtered.csv"),row.names = FALSE)
 ```
 
 #filter states that have data for all the years for all the variables
