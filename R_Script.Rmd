@@ -1,7 +1,7 @@
 ---
-title: "R_Script"
+title: "Exploring the Impact of biopsychosocial Factors on Hearing Loss Incidence Rates: A Population-Based Study."
 author: "Keshav Kumar"
-date: "2024-04-22"
+date: "2024-01-22"
 output: html_document
 ---
 
@@ -15,16 +15,318 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+# install packages and open libraries
+```{r}
+# stargazer for model comparison
+# sandwich For robust SE estimator
+# broom for getting results with Robust SEs
+# MASS For negative binomial
+# lmtest For model comparison
+# SMPracticals for lung cancer data
+# ggplot2 for plots
+# writing results to excel
+
+pacman::p_load(stargazer, sandwich, MASS, lmtest, SMPracticals, ggplot2, writexl, broom, broom.mixed, dplyr, tidyverse, lme4, summarytools,tableone, reshape2, kableExtra)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+# reading fully complied data  
+```{r}
+# Create a dataset for poission
+
+ehdi<- read.csv("ACS_social_explorer_data/ehdi_acs_Insur_data_2015to2020_cleaned20240207.csv",header = TRUE)
+
+ehdi_pos <- ehdi %>% 
+  select(`State`,`Year`,`HL`,`Total_population`, `Black_under_5yr`,`White_under_5yr`, `Pop_with_insur`,`Median_household_income`,`Health_Spending_per_Capita`) %>% 
+  na.omit() %>%
+ mutate(Year = as.factor(Year)) #%>% 
+  # #mutate(PerHL = (HL/Tscr)*100) %>% 
+  # group_by(Year) %>%
+  #             summarise(across(where(is.numeric), ~sum(., na.rm=TRUE))) %>%
+  #             mutate(State="Total", Year, sep="_")
+
+# write_csv(ehdi_pos,
+#           "ACS_social_explorer_data/capstone_data_filtered.csv")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#filter states that have data for all the years for all the variables
+```{r}
+
+# Check which states have data for all years
+states_all_years <- ehdi_pos %>%
+  group_by(State) %>%
+  summarise(num_years = n_distinct(Year)) %>%
+  filter(num_years == 6) %>%
+  pull(State)
+
+# Filter the dataset to include only those states
+ehdi_pos <- ehdi_pos %>%
+  filter(State %in% states_all_years)
+
+```
+
+
+#Descriptive statistics mean ± SD (min-max)
+
+```{r}
+ehdi_pos %>%
+  group_by(Year) %>%
+  summarise(
+    `Hearing Loss Cases` = paste(round(mean(HL, na.rm = TRUE), 2), "±", round(sd(HL, na.rm = TRUE), 2), "(", min(HL, na.rm = TRUE), "-", max(HL, na.rm = TRUE), ")", sep = " "),
+    `Black population under 5yr of age` = paste(round(mean(Black_under_5yr, na.rm = TRUE) / 1000, 2), "±", round(sd(Black_under_5yr, na.rm = TRUE) / 1000, 2), "(", round(min(Black_under_5yr, na.rm = TRUE) / 1000, 2), "-", round(max(Black_under_5yr, na.rm = TRUE) / 1000, 2), ")", sep = " "),
+    `Population Insured` = paste(round(mean(Pop_with_insur, na.rm = TRUE) / 1000, 2), "±", round(sd(Pop_with_insur, na.rm = TRUE) / 1000, 2), "(", round(min(Pop_with_insur, na.rm = TRUE) / 1000, 2), "-", round(max(Pop_with_insur, na.rm = TRUE) / 1000, 2), ")", sep = " "),
+    `Median household income in dollar` = paste(round(mean(Median_household_income, na.rm = TRUE) / 1000, 2), "±", round(sd(Median_household_income, na.rm = TRUE) / 1000, 2), "(", round(min(Median_household_income, na.rm = TRUE) / 1000, 2), "-", round(max(Median_household_income, na.rm = TRUE) / 1000, 2), ")", sep = " "),
+    `Health spending per capita in dollar` = paste(round(mean(Health_Spending_per_Capita, na.rm = TRUE) / 1000, 2), "±", round(sd(Health_Spending_per_Capita, na.rm = TRUE) / 1000, 2), "(", round(min(Health_Spending_per_Capita, na.rm = TRUE) / 1000, 2), "-", round(max(Health_Spending_per_Capita, na.rm = TRUE) / 1000, 2), ")", sep = " ")
+  )
+
+```
+Note: The values displayed in the columns for the Black population under 5 years of age, population insured, median household income, and health spending per capita are shown in hundreds for clarity, although the original figures are in thousands.
+
+#check the correlation 
+```{r}
+# Get the correlation matrix
+cap_HL_ehdi <- ehdi_pos %>% 
+  select(-c(State, Year))
+# Check correlation matrix
+cor_matrix <- cor(cap_HL_ehdi)
+summary(cor_matrix)
+# Visualize correlation matrix
+cor_plot_HL <- corrplot::corrplot(cor_matrix, method = "circle", type = "upper", tl.cex = 0.7)
+
+# continuing the rest of the code -----------------------
+# Plot heatmap
+correlation_plot<- ggplot(data = melt(cor_matrix), aes(Var1, Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), space = "Lab",
+                       name="Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 10, hjust = 1))
+#save the plot
+# ggsave(correlation_plot,
+#        # file path
+#        file="ACS_social_explorer_data/correlation_plot_HL_capstone.png",
+#        # figure size
+#        width=1200/96,
+#        height=900/96,
+#        bg = "white")
+
+```
+
+
+# Check shape of distribution of outcome variable hearing loss
+```{r}
+# Check shape of distribution of counts of cases using density plot and histogram
+d <- density(ehdi_pos$HL) 
+plot(d)
+hist(ehdi_pos$HL)
+
+#with ggplot
+gghisto <- ggplot(ehdi_pos, aes(HL))+
+    geom_histogram(color="black", fill="#3182bd")
+
+ggdens <- ggplot(ehdi_pos, aes(HL))+
+    geom_density()
+
+# #save the plot
+# ggsave(gghisto,
+#        # file path
+#        file="ACS_social_explorer_data/gghisto_HL_capstone.png",
+#        # figure size
+#        width=1200/96,
+#        height=900/96,
+#        bg = "white")
+# 
+# ggsave(ggdens,
+#        # file path
+#        file="ACS_social_explorer_data/ggdens_HL_capstone.png",
+#        # figure size
+#        width=1200/96,
+#        height=900/96,
+#        bg = "white")
+```
+
+# Our tudy aims to examine the temporal trends in hearing loss patterns over a six-year period, from 2015 to 2020, taking into account key covariates such as the population of Black infants under 5 years of age, insurance coverage, median household income, and state-level health spending per capita. Additionally, this study seeks to identify any potential shifts in hearing loss patterns attributable to the COVID-19 pandemic.
+
+#However, the population sizes (n) differ between the states so we want to account for that by pedicting the log(count/n) from our model. When we exponentiate the beta for state, we will then get the incidence rate ratio. To account  for differences in n, we need to use an **offset*, which is defined by log(n) in the model.
+
+# create an offset term
+```{r}
+# Add an offset term
+ehdi_pos_3 <- ehdi_pos %>%
+  mutate(offset = log(Total_population))
+
+ehdi_pos_3$State <- factor(ehdi_pos_3$State)  # Convert State to factor
+contrasts(ehdi_pos_3$Year) <- contr.treatment(levels(ehdi_pos_3$Year))
+
+```
+
+# convert variables state and year to the appropriate formats
+```{r}
+#converting state to factor
+ehdi_pos_3$State <- factor(ehdi_pos_3$State) 
+
+# convert year to categorical and setting contrasts using treatment coding to compare each year against the baseline category
+contrasts(ehdi_pos_3$Year) <- contr.treatment(levels(ehdi_pos_3$Year)) 
+
+```
+
+#The scale() function in R standardizes data by centering and scaling: it first subtracts the mean (centering) and then divides by the standard deviation (scaling) of each variable. Mathematically, for each element x in a variable, the standardized value z is calculated as z = (x−μ)/σ where μ is the mean and σ is the standard deviation of the variable. This process transforms the data to have a mean of 0 and a standard deviation of 1, facilitating comparisons and analyses across different scales.
+
+```{r}
+# Standardize the predictor variables
+ehdi_pos_3$Black_under_5yr_std <- scale(ehdi_pos_3$Black_under_5yr, center = TRUE, scale = TRUE)
+ehdi_pos_3$Median_household_income_std <- scale(ehdi_pos_3$Median_household_income, center = TRUE, scale = TRUE)
+ehdi_pos_3$Pop_with_insur_std <- scale(ehdi_pos_3$Pop_with_insur, center = TRUE, scale = TRUE)
+ehdi_pos_3$Health_Spending_per_Capita <- scale(ehdi_pos_3$Health_Spending_per_Capita, center = TRUE, scale = TRUE)
+
+```
+
+
+# run the possion model for hearing loss
+```{r}
+# Fit the Poisson regression model with standardized predictor variables
+HL_model <- glmer(HL ~ Year + Black_under_5yr_std + Median_household_income_std + 
+                                 Pop_with_insur_std + Health_Spending_per_Capita + (1 | State), 
+                        data = ehdi_pos_3, family = poisson, offset = offset)
+
+# Display the summary of the model
+summary(HL_model)
+
+```
+
+
+# To get IRRs and 95% CIs 
+```{r}
+df<- tidy(HL_model)
+df$IRR<- exp(df$estimate)
+df$lowCI <- exp(df$estimate - 1.96*df$std.error)
+df$highCI <- exp(df$estimate + 1.96*df$std.error)
+print(df)
+
+```
+
+# crearting IRR result table in a format required for the paper
+```{r}
+# Combine IRR, lowCI, and highCI into a formatted string
+df$`IRR (Low CI - High CI)` <- paste0(round(df$IRR, 2), " (", round(df$lowCI, 2), "-", round(df$highCI, 2), ")")
+df$`p-value` <- round(df$p.value, 2)
+# Select only the formatted IRR and p.value columns
+df_final <- df[, c("term", "IRR (Low CI - High CI)", "p-value")]
+
+# Print the final adjusted dataframe
+print(df_final)
+
+```
+
+# vizualize the possion result
+```{r}
+plot_HL<- ggplot(df, aes(x = term, y = IRR, fill = p.value < 0.05, ymin = lowCI, ymax = highCI)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_errorbar(width = 0.2, position = position_dodge(0.5)) +
+  geom_text(aes(label = sprintf("%.2f", IRR)), vjust = -0.5, size = 3, position = position_dodge(0.5)) +
+  labs(x = NULL, y = "Incidence Rate Ratio (IRR) of HL", title = "Estimated IRRs of Hearing Loss and 95% CIs") +
+  scale_fill_manual(values = c("FALSE" = "skyblue", "TRUE" = "red"), guide = FALSE) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.line = element_line(size = 1))
+
+print(plot_HL)
+# ggsave(plot_HL,
+#        # file path
+#        file="ACS_social_explorer_data/ggplot_HL_capstone.png",
+#        # figure size
+#        width=1200/96,
+#        height=900/96,
+#        bg = "white")
+```
+
+# We can test for overdispersion by running a negative binomial model and then running the LR test. Note for the glm.nb function, there is no offset option so you need to add the offset as a term in the model. Poisson accepts either as above but the glm.nb function does not.
+```{r}
+# Fit the negative binomial regression model with standardized predictor variables
+HL_model_nb <- glmer.nb(HL ~ Year + Black_under_5yr_std + Median_household_income_std + 
+                          Pop_with_insur_std + Health_Spending_per_Capita +  (1 | State), 
+                        data = ehdi_pos_3, offset = offset)
+
+# Display the summary of the model
+summary(HL_model_nb)
+
+```
+
+
+
+#Exctract the IRR and CI
+```{r}
+df1<- tidy(HL_model_nb)
+df1$IRR<- exp(df1$estimate)
+df1$lowCI <- exp(df1$estimate - 1.96*df1$std.error)
+df1$highCI <- exp(df1$estimate + 1.96*df1$std.error)
+
+print(df1)
+```
+
+# calculating the SD for the significant predictors before standardization for interpretation purpose
+```{r}
+# Calculate SD for the black population under 5 years
+sd_black_population <- sd(ehdi_pos$Black_under_5yr, na.rm = TRUE)
+
+# Calculate SD for health spending per capita
+sd_health_spending <- sd(ehdi_pos$Health_Spending_per_Capita, na.rm = TRUE)
+
+# Print the standard deviations
+print(sd_black_population)
+print(sd_health_spending)
+
+```
+
+# crearting IRR result table in a format required for the paper
+```{r}
+# Combine IRR, lowCI, and highCI into a formatted string
+df1$`IRR (Low CI - High CI)` <- paste0(round(df1$IRR, 2), " (", round(df1$lowCI, 2), "-", round(df1$highCI, 2), ")")
+df1$`p-value` <- round(df1$p.value, 2)
+# Select only the formatted IRR and p.value columns
+df1_final <- df1[, c("term", "IRR (Low CI - High CI)", "p-value")]
+
+# Print the final adjusted dataframe
+print(df1_final)
+
+```
+
+
+# Likelihood ratio test
+```{r}
+#run lrtest to compare models
+anova(HL_model, HL_model_nb)# if p-value is <0.05 use negbin
+```
+# The LR test indicates that the negative binomial model significantly improve the fit to the data and that we have violated the mean = variance assumption. Therefore the neg binomial model adequately fits these data.
+
+# vizualize the negative binomial result
+```{r}
+plot_HL_nb<- ggplot(df1, aes(x = term, y = IRR, fill = p.value < 0.05, ymin = lowCI, ymax = highCI)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_errorbar(width = 0.2, position = position_dodge(0.5)) +
+  geom_text(aes(label = sprintf("%.2f", IRR)), vjust = -0.5, size = 3, position = position_dodge(0.5)) +
+  labs(x = NULL, y = "Incidence Rate Ratio (IRR) of HL", title = "Estimated IRRs of Hearing Loss and 95% CIs") +
+  scale_fill_manual(values = c("FALSE" = "skyblue", "TRUE" = "red"), guide = FALSE) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.line = element_line(size = 1))
+
+print(plot_HL_nb)
+# ggsave(plot_HL_nb,
+#        # file path
+#        file="ACS_social_explorer_data/ggplot_HL_nb_capstone.png",
+#        # figure size
+#        width=1200/96,
+#        height=900/96,
+#        bg = "white")
+```
+
+
+# Below we further compare the estimates between the two models. The Poisson regression estimates SEs that are usually smaller than those from the negbin.
+```{r, eval=FALSE}
+stargazer(HL_model, HL_model_nb, title="Model Comparison",
+          type="text", align=TRUE, single.row=TRUE, digits=6)
+```
