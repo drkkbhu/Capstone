@@ -1,15 +1,157 @@
 ---
 title: "Exploring the Impact of biopsychosocial Factors on Hearing Loss Incidence Rates: A Population-Based Study."
 author: "Keshav Kumar"
-date: "2024-04-22"
-output: html_document
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+    html_document:
+      theme: journal
+      toc: yes
+      toc_float:
+        collapsed: true
+      toc_depth: 4
+      plots: 
+        style: Normal
+        align: left
+      code_folding: hide
+    fig_caption: TRUE
+    df_print: kable
+always_allow_html: TRUE
+editor_options: 
+  chunk_output_type: console
 ---
+[//]: # CSS style arguments
+
+ <style type="text/css">
+
+
+h1 {
+  font-size: 40px;
+}
+
+h2 {
+  font-size: 30px;
+}
+
+p {
+  font-size: 16px;
+}
+
+li {
+  font-size: 18px;
+}
+
+body{ /* Normal  */
+      font-size: 20px;
+      counter-reset:table figure;
+  }
+
+.table{
+width:auto;
+font-size:12px;
+}
+
+td, th{
+padding-left:10px;
+text-align: right;
+font-size: 16px;
+}
+
+caption::before{
+counter-increment: table;
+content: "Table " counter(table) ": ";
+}
+
+
+.caption::before{
+counter-increment: figure;
+content: "Figure " counter(figure) ": ";
+}
+
+caption, .caption{
+font-style:italic;
+font-size: 14px;
+margin-top:0.5em;
+margin-bottom:0.5em;
+width:90%;
+text-align: left;
+}
+
+#TOC {
+font-size: 14px;
+background-color: white;
+overflow: auto;
+}
+
+</style>
+
+
+
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+# global settings (see Yihue Xie https://yihui.org/knitr/options/)
+
+knitr::opts_chunk$set(fig.width=12, fig.height=12, warning=FALSE, 
+                      message=FALSE, cache=FALSE, results='asis')
+
+
+
 ```
 
-## R Markdown
+```{r PROLOG_DATAMGMT}
+
+
+###### PROLOG ########
+
+
+# PROLOG   ###
+# PROJECT: Capstone EHDI Paper                                   
+# PURPOSE: Capstone                                      
+# DIR:     OneDrive/Keshav-Personal/Desktop/R_git/Capstone                    
+# DATA:    ehdi_acs_Insur_data_2015to2020_cleaned20240207.csv             
+# AUTHOR:  Keshav Kumar                                            
+# CREATED: Apr 22, 2024                                           
+# LATEST:  JUL 4, 2024                                      
+# NOTES:   Source for GOVT spending data: 
+#          ACS social explorer 2024.
+#         Kaiser Family FOundation for healthcare spending data
+
+# PROLOG   ### 
+
+
+# install packages and open libraries
+
+# stargazer for model comparison
+# sandwich For robust SE estimator
+# broom for getting results with Robust SEs
+# MASS For negative binomial
+# lmtest For model comparison
+# SMPracticals for lung cancer data
+# ggplot2 for plots
+# writing results to excel
+# magrittr for pipes
+# sessioninfo for session_info at bottom
+# details for session_info at bottom
+# ggthemes for tufte theme
+# ggrepel for text plotting
+# patchwork for combining plots
+# sjplot for model tables
+pacman::p_load(stargazer, sandwich, MASS, lmtest, SMPracticals, ggplot2, writexl, broom, broom.mixed, dplyr, tidyverse, lme4, summarytools, tableone, reshape2, kableExtra, magrittr, sessioninfo, details, ggthemes, ggrepel, patchwork, sjPlot)
+
+# plot theme
+theme_set(theme_tufte())  # but might not carry over in chunks
+
+# Okabe-Ito colorblind-friendly color palette:
+# https://jfly.uni-koeln.de/color/
+
+oi_pal <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", 
+     "#0072B2", "#D55E00", "#CC79A7", "#999999")
+
+
+```
+
+  
+### R Markdown
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
@@ -22,7 +164,7 @@ When you click the **Knit** button a document will be generated that includes bo
 # setwd("C:/Users/kesha/OneDrive/Desktop/R_git/Capstone")
 ```
 
-## Set environment is commented out since this is in already setup in git
+### Set environment is commented out since this is in already setup in git
 #############################
 ```{r}
 # # Set the base folder path
@@ -30,9 +172,7 @@ When you click the **Knit** button a document will be generated that includes bo
 # 
 # ## Input directory
 # inputData.dir <- paste(box_folder,"ACS_social_explorer_data")
-```
 
-```{r}
 ## Output directory
 # out.dir <- paste(box_folder,"/Output/Result", Sys.Date(), sep="")
 # if (!dir.exists(out.dir)) {
@@ -41,24 +181,12 @@ When you click the **Knit** button a document will be generated that includes bo
 # setwd(out.dir)
 ```
 
-# install packages and open libraries
+
+### Data Management 
 ```{r}
-# stargazer for model comparison
-# sandwich For robust SE estimator
-# broom for getting results with Robust SEs
-# MASS For negative binomial
-# lmtest For model comparison
-# SMPracticals for lung cancer data
-# ggplot2 for plots
-# writing results to excel
 
-pacman::p_load(stargazer, sandwich, MASS, lmtest, SMPracticals, ggplot2, writexl, broom, broom.mixed, dplyr, tidyverse, lme4, summarytools,tableone, reshape2, kableExtra)
-```
+###### DATA MGMT #####
 
-
-
-# reading fully complied data  
-```{r}
 # Create a dataset for poission
 
 ehdi<- read.csv("ACS_social_explorer_data/ehdi_acs_Insur_data_2015to2020_cleaned20240207.csv",header = TRUE)
@@ -73,10 +201,8 @@ ehdi_pos <- ehdi %>%
   #             mutate(State="Total", Year, sep="_")
 
 
-```
-
 #filter states that have data for all the years for all the variables
-```{r}
+
 
 # Check which states have data for all years
 states_all_years <- ehdi_pos %>%
@@ -90,16 +216,15 @@ ehdi_pos <- ehdi_pos %>%
   filter(State %in% states_all_years)
 
 #write out filtered data
-write_csv(ehdi_pos,
-          "Output/final_data/final_data_filtered.csv")
+#write_csv(ehdi_pos,
+#          "Output/final_data/final_data_filtered.csv")
 
 ```
 
 
-#Descriptive statistics mean ± SD (min-max)
-
+### Descriptive Statistics mean ± SD (min-max)
 ```{r}
-ehdi_pos %>%
+descriptive_table<- ehdi_pos %>%
   group_by(Year) %>%
   summarise(
     `Hearing Loss Cases` = paste(round(mean(HL, na.rm = TRUE), 2), "±", round(sd(HL, na.rm = TRUE), 2), "(", min(HL, na.rm = TRUE), "-", max(HL, na.rm = TRUE), ")", sep = " "),
@@ -107,12 +232,16 @@ ehdi_pos %>%
     `Population Insured` = paste(round(mean(Pop_with_insur, na.rm = TRUE) / 1000, 2), "±", round(sd(Pop_with_insur, na.rm = TRUE) / 1000, 2), "(", round(min(Pop_with_insur, na.rm = TRUE) / 1000, 2), "-", round(max(Pop_with_insur, na.rm = TRUE) / 1000, 2), ")", sep = " "),
     `Median household income in dollar` = paste(round(mean(Median_household_income, na.rm = TRUE) / 1000, 2), "±", round(sd(Median_household_income, na.rm = TRUE) / 1000, 2), "(", round(min(Median_household_income, na.rm = TRUE) / 1000, 2), "-", round(max(Median_household_income, na.rm = TRUE) / 1000, 2), ")", sep = " "),
     `Health spending per capita in dollar` = paste(round(mean(Health_Spending_per_Capita, na.rm = TRUE) / 1000, 2), "±", round(sd(Health_Spending_per_Capita, na.rm = TRUE) / 1000, 2), "(", round(min(Health_Spending_per_Capita, na.rm = TRUE) / 1000, 2), "-", round(max(Health_Spending_per_Capita, na.rm = TRUE) / 1000, 2), ")", sep = " ")
-  )
-
+  ) %>% 
+  ungroup() %>%
+  as.data.frame()  # Convert tibble to data.frame
+# Use kable to create the table with a caption
+kable(descriptive_table, caption = "Descriptive Table", format = "html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 Note: The values displayed in the columns for the Black population under 5 years of age, population insured, median household income, and health spending per capita are shown in hundreds for clarity, although the original figures are in thousands.
 
-#check the correlation 
+### Correlation 
 ```{r}
 # Get the correlation matrix
 cap_HL_ehdi <- ehdi_pos %>% 
@@ -145,7 +274,7 @@ correlation_plot<- ggplot(data = melt(cor_matrix), aes(Var1, Var2, fill = value)
 ```
 
 
-# Check shape of distribution of outcome variable hearing loss
+### Check Outcome Variable Distribution
 ```{r}
 # Check shape of distribution of counts of cases using density plot and histogram
 d <- density(ehdi_pos$HL) 
@@ -177,11 +306,11 @@ ggdens <- ggplot(ehdi_pos, aes(HL))+
 #        bg = "white")
 ```
 
-# Our tudy aims to examine the temporal trends in hearing loss patterns over a six-year period, from 2015 to 2020, taking into account key covariates such as the population of Black infants under 5 years of age, insurance coverage, median household income, and state-level health spending per capita. Additionally, this study seeks to identify any potential shifts in hearing loss patterns attributable to the COVID-19 pandemic.
+Our study aims to examine the temporal trends in hearing loss patterns over a six-year period, from 2015 to 2020, taking into account key covariates such as the population of Black infants under 5 years of age, insurance coverage, median household income, and state-level health spending per capita. Additionally, this study seeks to identify any potential shifts in hearing loss patterns attributable to the COVID-19 pandemic.
 
-#However, the population sizes (n) differ between the states so we want to account for that by pedicting the log(count/n) from our model. When we exponentiate the beta for state, we will then get the incidence rate ratio. To account  for differences in n, we need to use an **offset*, which is defined by log(n) in the model.
+However, the population sizes (n) differ between the states so we want to account for that by pedicting the log(count/n) from our model. When we exponentiate the beta for state, we will then get the incidence rate ratio. To account  for differences in n, we need to use an **offset*, which is defined by log(n) in the model.
 
-# create an offset term
+### Create an Offset term
 ```{r}
 # Add an offset term
 ehdi_pos_3 <- ehdi_pos %>%
@@ -192,7 +321,7 @@ contrasts(ehdi_pos_3$Year) <- contr.treatment(levels(ehdi_pos_3$Year))
 
 ```
 
-# convert variables state and year to the appropriate formats
+### Convert Variables State & Year to the appropriate formats
 ```{r}
 #converting state to factor
 ehdi_pos_3$State <- factor(ehdi_pos_3$State) 
@@ -202,8 +331,9 @@ contrasts(ehdi_pos_3$Year) <- contr.treatment(levels(ehdi_pos_3$Year))
 
 ```
 
-#The scale() function in R standardizes data by centering and scaling: it first subtracts the mean (centering) and then divides by the standard deviation (scaling) of each variable. Mathematically, for each element x in a variable, the standardized value z is calculated as z = (x−μ)/σ where μ is the mean and σ is the standard deviation of the variable. This process transforms the data to have a mean of 0 and a standard deviation of 1, facilitating comparisons and analyses across different scales.
+The scale() function in R standardizes data by centering and scaling: it first subtracts the mean (centering) and then divides by the standard deviation (scaling) of each variable. Mathematically, for each element x in a variable, the standardized value z is calculated as z = (x−μ)/σ where μ is the mean and σ is the standard deviation of the variable. This process transforms the data to have a mean of 0 and a standard deviation of 1, facilitating comparisons and analyses across different scales.
 
+### Standardization
 ```{r}
 # Standardize the predictor variables
 ehdi_pos_3$Black_under_5yr_std <- scale(ehdi_pos_3$Black_under_5yr, center = TRUE, scale = TRUE)
@@ -214,7 +344,7 @@ ehdi_pos_3$Health_Spending_per_Capita <- scale(ehdi_pos_3$Health_Spending_per_Ca
 ```
 
 
-# run the possion model for hearing loss
+### Possion Model 
 ```{r}
 # Fit the Poisson regression model with standardized predictor variables
 HL_model <- glmer(HL ~ Year + Black_under_5yr_std + Median_household_income_std + 
@@ -222,22 +352,21 @@ HL_model <- glmer(HL ~ Year + Black_under_5yr_std + Median_household_income_std 
                         data = ehdi_pos_3, family = poisson, offset = offset)
 
 # Display the summary of the model
-summary(HL_model)
+tab_model(HL_model)
 
 ```
 
 
-# To get IRRs and 95% CIs 
+### IRRs and 95% CIs 
 ```{r}
 df<- tidy(HL_model)
 df$IRR<- exp(df$estimate)
 df$lowCI <- exp(df$estimate - 1.96*df$std.error)
 df$highCI <- exp(df$estimate + 1.96*df$std.error)
-print(df)
-
+knitr::kable(df, caption = "Incidence Rate Ratios and 95% Confidence Intervals for Possion")
 ```
 
-# crearting IRR result table in a format required for the paper
+### IRR table 
 ```{r}
 # Combine IRR, lowCI, and highCI into a formatted string
 df$`IRR (Low CI - High CI)` <- paste0(round(df$IRR, 2), " (", round(df$lowCI, 2), "-", round(df$highCI, 2), ")")
@@ -245,12 +374,12 @@ df$`p-value` <- round(df$p.value, 2)
 # Select only the formatted IRR and p.value columns
 df_final <- df[, c("term", "IRR (Low CI - High CI)", "p-value")]
 
-# Print the final adjusted dataframe
-print(df_final)
+# Print the final adjusted data frame
+knitr::kable(df_final, caption = "IRR table for Possion")
 
 ```
 
-# vizualize the possion result
+### Vizualize the Possion Results
 ```{r}
 plot_HL<- ggplot(df, aes(x = term, y = IRR, fill = p.value < 0.05, ymin = lowCI, ymax = highCI)) +
   geom_bar(stat = "identity", width = 0.5) +
@@ -272,7 +401,9 @@ print(plot_HL)
 #        bg = "white")
 ```
 
-# We can test for overdispersion by running a negative binomial model and then running the LR test. Note for the glm.nb function, there is no offset option so you need to add the offset as a term in the model. Poisson accepts either as above but the glm.nb function does not.
+We can test for overdispersion by running a negative binomial model and then running the LR test. Note for the glm.nb function, there is no offset option so you need to add the offset as a term in the model. Poisson accepts either as above but the glm.nb function does not.
+
+### Negative Binomial
 ```{r}
 # Fit the negative binomial regression model with standardized predictor variables
 HL_model_nb <- glmer.nb(HL ~ Year + Black_under_5yr_std + Median_household_income_std + 
@@ -280,27 +411,28 @@ HL_model_nb <- glmer.nb(HL ~ Year + Black_under_5yr_std + Median_household_incom
                         data = ehdi_pos_3, offset = offset)
 
 # Display the summary of the model
-summary(HL_model_nb)
+tab_model(HL_model_nb)
 
 ```
 
 
-
-#Exctract the IRR and CI
+### IRR and CI
 ```{r}
 df1<- tidy(HL_model_nb)
 df1$IRR<- exp(df1$estimate)
 df1$lowCI <- exp(df1$estimate - 1.96*df1$std.error)
 df1$highCI <- exp(df1$estimate + 1.96*df1$std.error)
 
-print(df1)
+knitr:: kable(df1, caption = "Incidence Rate Ratios and 95% Confidence Intervals for Negative Binomial")
 
-write.csv(df1,
-       # file path
-       file="Output/HL_model_nb_IRR_tbl.csv")
+# write.csv(df1,
+#        # file path
+#        file="Output/HL_model_nb_IRR_tbl.csv")
 ```
 
-# calculating the SD for the significant predictors before standardization for interpretation purpose
+calculating the SD for the significant predictors before standardization for interpretation purpose
+
+### SD for Predictors
 ```{r}
 # Calculate SD for the black population under 5 years
 sd_black_population <- sd(ehdi_pos$Black_under_5yr, na.rm = TRUE)
@@ -309,12 +441,12 @@ sd_black_population <- sd(ehdi_pos$Black_under_5yr, na.rm = TRUE)
 sd_health_spending <- sd(ehdi_pos$Health_Spending_per_Capita, na.rm = TRUE)
 
 # Print the standard deviations
-print(sd_black_population)
-print(sd_health_spending)
+knitr::kable(sd_black_population)
+knitr::kable(sd_health_spending)
 
 ```
 
-# crearting IRR result table in a format required for the paper
+### IRR Table
 ```{r}
 # Combine IRR, lowCI, and highCI into a formatted string
 df1$`IRR (Low CI - High CI)` <- paste0(round(df1$IRR, 2), " (", round(df1$lowCI, 2), "-", round(df1$highCI, 2), ")")
@@ -323,22 +455,23 @@ df1$`p-value` <- round(df1$p.value, 2)
 df1_final <- df1[, c("term", "IRR (Low CI - High CI)", "p-value")]
 
 # Print the final adjusted dataframe
-print(df1_final)
+knitr::kable(df1_final, caption = "IRR table for Negative Binomial")
 
-write.csv(df1_final,
-       # file path
-       file="Output/neg_binomial_IRR_table.csv")
+# write.csv(df1_final,
+#        # file path
+#        file="Output/neg_binomial_IRR_table.csv")
 ```
 
 
-# Likelihood ratio test
+### Likelihood ratio test
 ```{r}
 #run lrtest to compare models
-anova(HL_model, HL_model_nb)# if p-value is <0.05 use negbin
+kable(anova(HL_model, HL_model_nb))# if p-value is <0.05 use negbin
 ```
-# The LR test indicates that the negative binomial model significantly improve the fit to the data and that we have violated the mean = variance assumption. Therefore the neg binomial model adequately fits these data.
 
-# vizualize the negative binomial result
+The LR test indicates that the negative binomial model significantly improve the fit to the data and that we have violated the mean = variance assumption. Therefore the neg binomial model adequately fits these data.
+
+### Vizualize Negative Binomial
 ```{r}
 plot_HL_nb<- ggplot(df1, aes(x = term, y = IRR, fill = p.value < 0.05, ymin = lowCI, ymax = highCI)) +
   geom_bar(stat = "identity", width = 0.5) +
@@ -361,8 +494,12 @@ ggsave(plot_HL_nb,
 ```
 
 
-# Below we further compare the estimates between the two models. The Poisson regression estimates SEs that are usually smaller than those from the negbin.
+Below we further compare the estimates between the two models. The Poisson regression estimates SEs that are usually smaller than those from the negbin.
+
+### Compare Model
 ```{r, eval=FALSE}
-stargazer(HL_model, HL_model_nb, title="Model Comparison",
+model <- stargazer(HL_model, HL_model_nb, title="Model Comparison",
           type="text", align=TRUE, single.row=TRUE, digits=6)
+
+print(model, caption= "Model Comparison")
 ```
