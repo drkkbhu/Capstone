@@ -1,22 +1,26 @@
 ---
-title: "Exploring the Impact of biopsychosocial Factors on Hearing Loss Incidence Rates: A Population-Based Study."
+title: ""Exploring the Impact of biopsychosocial Factors on Hearing Loss Incidence"
+  Rates: A Population-Based Study."
 author: "Keshav Kumar"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: 
-    html_document:
-      theme: journal
-      toc: yes
-      toc_float:
-        collapsed: true
-      toc_depth: 4
-      plots: 
-        style: Normal
-        align: left
-      code_folding: hide
-    fig_caption: TRUE
-    df_print: kable
-always_allow_html: TRUE
-editor_options: 
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+  fig_caption: yes
+  df_print: kable
+  html_document:
+    theme: journal
+    toc: yes
+    toc_float:
+      collapsed: yes
+    toc_depth: 4
+    plots:
+      style: Normal
+      align: left
+    code_folding: hide
+always_allow_html: yes
+editor_options:
   chunk_output_type: console
 ---
 [//]: # CSS style arguments
