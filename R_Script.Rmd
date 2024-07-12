@@ -3,7 +3,7 @@ title: "Exploring the Impact of biopsychosocial Factors on Hearing Loss Incidenc
 author: "Keshav Kumar"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  pdf_document:
+  word_document:
     toc: yes
     toc_depth: '4'
   fig_caption: yes
@@ -18,6 +18,9 @@ output:
       style: Normal
       align: left
     code_folding: hide
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 always_allow_html: yes
 editor_options:
   chunk_output_type: console
@@ -88,8 +91,6 @@ overflow: auto;
 </style>
 
 
-
-
 ```{r setup, include=FALSE}
 
 # global settings (see Yihue Xie https://yihui.org/knitr/options/)
@@ -97,9 +98,8 @@ overflow: auto;
 knitr::opts_chunk$set(fig.width=12, fig.height=12, warning=FALSE, 
                       message=FALSE, cache=FALSE, results='asis')
 
-
-
 ```
+
 
 ```{r PROLOG_DATAMGMT}
 
@@ -139,7 +139,7 @@ knitr::opts_chunk$set(fig.width=12, fig.height=12, warning=FALSE,
 # ggrepel for text plotting
 # patchwork for combining plots
 # sjplot for model tables
-pacman::p_load(stargazer, sandwich, MASS, lmtest, SMPracticals, ggplot2, writexl, broom, broom.mixed, dplyr, tidyverse, lme4, summarytools, tableone, reshape2, kableExtra, magrittr, sessioninfo, details, ggthemes, ggrepel, patchwork, sjPlot)
+pacman::p_load(stargazer, sandwich, MASS, lmtest, SMPracticals, ggplot2, writexl, broom, broom.mixed, dplyr, tidyverse, lme4, summarytools, tableone, reshape2, kableExtra, magrittr, sessioninfo, details, ggthemes, ggrepel, patchwork, sjPlot, tinytex_root)
 
 # plot theme
 theme_set(theme_tufte())  # but might not carry over in chunks
